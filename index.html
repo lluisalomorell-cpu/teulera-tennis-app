@@ -362,6 +362,66 @@ let posts = [];
 let idSeq = 100;
 function newId(prefix){ idSeq++; return prefix+idSeq; }
 
+/* ---------------- SYNC CON EL SERVIDOR ---------------- */
+let lastRev = 0;
+let syncFailed = false;
+
+function applyServerState(data){
+  if(data.coaches) coaches = data.coaches;
+  if(data.players) players = data.players;
+  if(data.posts) posts = data.posts;
+  if(typeof data.rev === "number") lastRev = data.rev;
+}
+
+async function apiPost(path, body){
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    const err = await res.json().catch(()=>({error:"error"}));
+    throw new Error(err.error || "error");
+  }
+  const data = await res.json();
+  applyServerState(data);
+  return data;
+}
+
+async function bootstrap(){
+  try{
+    const res = await fetch("/api/state");
+    if(res.ok){
+      const data = await res.json();
+      applyServerState(data);
+      syncFailed = false;
+    }
+  }catch(e){
+    syncFailed = true; // sin conexión al servidor: seguimos con los datos de ejemplo en memoria
+  }
+  render();
+  startPolling();
+}
+
+function startPolling(){
+  setInterval(async ()=>{
+    try{
+      const res = await fetch("/api/state");
+      if(!res.ok) return;
+      const data = await res.json();
+      syncFailed = false;
+      if(data.rev !== lastRev){
+        applyServerState(data);
+        const activeTag = document.activeElement && document.activeElement.tagName;
+        const typing = activeTag === "INPUT" || activeTag === "TEXTAREA";
+        if(!typing) render();
+      }
+    }catch(e){
+      syncFailed = true;
+    }
+  }, 6000);
+}
+
 /* ---------------- STATE ---------------- */
 let state = {
   view: "landing",   // landing | setup-area | setup-profile | select-player | dashboard | credentials | notifications
@@ -980,23 +1040,38 @@ function bindEvents(){
 
   const profileForm = app.querySelector("[data-form='profile']");
   if(profileForm){
-    profileForm.addEventListener("submit", (e)=>{
+    profileForm.addEventListener("submit", async (e)=>{
       e.preventDefault();
       const fd = new FormData(profileForm);
       const name = (fd.get("name")||"").toString().trim();
       if(!name) return;
       if(state.pendingRole === "entrenador"){
         const area = state.pendingArea || AREA_KEYS[0];
-        const id = newId("c");
-        coaches.push({ id, name, role:"entrenador", area });
-        state.currentUser = { id, name, role:"entrenador", area };
-        state.view = "select-player";
+        try{
+          const data = await apiPost("/api/coaches", { name, area });
+          const id = data.created.id;
+          state.currentUser = { id, name, role:"entrenador", area };
+          state.view = "select-player";
+        }catch(err){
+          const id = newId("c");
+          coaches.push({ id, name, role:"entrenador", area });
+          state.currentUser = { id, name, role:"entrenador", area };
+          state.view = "select-player";
+        }
       }else{
-        const id = newId("p");
-        players.push({ id, name, categoria:"", responsables:{ tenis:null, fisico:null, nutricion:"c9", psicologo:"c10" } });
-        state.currentUser = { id, name, role:"jugador" };
-        state.selectedPlayerId = id;
-        state.view = "dashboard";
+        try{
+          const data = await apiPost("/api/players", { name, categoria:"" });
+          const id = data.created.id;
+          state.currentUser = { id, name, role:"jugador" };
+          state.selectedPlayerId = id;
+          state.view = "dashboard";
+        }catch(err){
+          const id = newId("p");
+          players.push({ id, name, categoria:"", responsables:{ tenis:null, fisico:null, nutricion:"c9", psicologo:"c10" } });
+          state.currentUser = { id, name, role:"jugador" };
+          state.selectedPlayerId = id;
+          state.view = "dashboard";
+        }
       }
       state.activeTab = "resumen";
       render();
@@ -1008,14 +1083,18 @@ function bindEvents(){
 
   const addPlayerForm = app.querySelector("[data-form='add-player']");
   if(addPlayerForm){
-    addPlayerForm.addEventListener("submit",(e)=>{
+    addPlayerForm.addEventListener("submit", async (e)=>{
       e.preventDefault();
       const fd = new FormData(addPlayerForm);
       const name = (fd.get("name")||"").toString().trim();
       if(!name) return;
       const categoria = (fd.get("categoria")||"").toString().trim();
-      const id = newId("p");
-      players.push({ id, name, categoria, responsables:{ tenis:null, fisico:null, nutricion:"c9", psicologo:"c10" } });
+      try{
+        await apiPost("/api/players", { name, categoria });
+      }catch(err){
+        const id = newId("p");
+        players.push({ id, name, categoria, responsables:{ tenis:null, fisico:null, nutricion:"c9", psicologo:"c10" } });
+      }
       state.showAddPlayer = false;
       render();
     });
@@ -1112,23 +1191,30 @@ function bindEvents(){
           reader.readAsDataURL(file);
         });
       }
-      posts.push({
-        id:newId("m"), playerId:postForm.dataset.player, area:postForm.dataset.area,
-        authorId:state.currentUser.id, date:new Date().toISOString(), title, text, attachment
-      });
+      const playerId = postForm.dataset.player, area = postForm.dataset.area, authorId = state.currentUser.id;
+      try{
+        await apiPost("/api/posts", { playerId, area, authorId, title, text, attachment });
+      }catch(err){
+        posts.push({ id:newId("m"), playerId, area, authorId, date:new Date().toISOString(), title, text, attachment });
+      }
       render();
     });
   }
 
   app.querySelectorAll("[data-action='delete-post']").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      posts = posts.filter(m=>m.id!==el.dataset.id);
+    el.addEventListener("click", async ()=>{
+      const id = el.dataset.id;
+      try{
+        await apiPost("/api/posts/delete", { id });
+      }catch(err){
+        posts = posts.filter(m=>m.id!==id);
+      }
       render();
     });
   });
 }
 
-render();
+bootstrap();
 </script>
 </body>
 </html>
