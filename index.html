@@ -324,7 +324,7 @@ function daysAgo(d){
 }
 
 let coaches = [
-  { id:"c1",  name:"Angel",   role:"entrenador", area:"tenis",     username:"angel",   password:"hbrpoig8" },
+  { id:"c1",  name:"Angel",   role:"entrenador", area:"tenis",     director:true, username:"angel",   password:"hbrpoig8" },
   { id:"c2",  name:"Gabi",    role:"entrenador", area:"tenis",     username:"gabi",    password:"f1cbfno6" },
   { id:"c3",  name:"Carlos",  role:"entrenador", area:"tenis",     username:"carlos",  password:"b9m80o2r" },
   { id:"c4",  name:"Alfonso", role:"entrenador", area:"tenis",     username:"alfonso", password:"ak1vrjnv" },
@@ -408,6 +408,9 @@ function respLabel(player, area){
   if(names.length===1) return names[0];
   return names.slice(0,-1).join(", ") + " y " + names[names.length-1];
 }
+function canSeeCredentials(u){
+  return !!u && u.id === "c7"; // solo Lluis, aunque haya varios directores
+}
 function canWrite(area, playerId){
   const u = state.currentUser;
   if(!u || u.role!=="entrenador") return false;
@@ -425,7 +428,7 @@ function render(){
   else if(state.view === "setup-area") app.innerHTML = viewSetupArea();
   else if(state.view === "setup-profile") app.innerHTML = viewSetupProfile();
   else if(state.view === "select-player") app.innerHTML = viewSelectPlayer();
-  else if(state.view === "credentials") app.innerHTML = viewCredentials();
+  else if(state.view === "credentials" && canSeeCredentials(state.currentUser)) app.innerHTML = viewCredentials();
   else app.innerHTML = viewDashboard();
   bindEvents();
 }
@@ -561,7 +564,7 @@ function renderTopbar(){
       <span class="pill-btn who">👤 ${u.name} · ${isCoach ? AREAS[u.area].label : 'Jugador/a'}</span>
       ${isCoach ? `<button class="pill-btn ghost" data-action="go-select-player">🏠 Inicio</button>` : ``}
       ${(isCoach && state.view==="dashboard") ? `<button class="pill-btn ghost" data-action="go-select-player">🔁 Cambiar jugador</button>` : ``}
-      ${u.director ? `<button class="pill-btn ghost" data-action="go-credentials">🔑 Credenciales</button>` : ``}
+      ${canSeeCredentials(u) ? `<button class="pill-btn ghost" data-action="go-credentials">🔑 Credenciales</button>` : ``}
       <button class="pill-btn" data-action="logout">↩️ Cambiar perfil</button>
     </div>
   </div>`;
