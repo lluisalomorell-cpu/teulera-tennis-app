@@ -4,10 +4,20 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const DATA_DIR = fs.existsSync("/data") ? "/data" : __dirname;
 const DB_FILE = path.join(DATA_DIR, "db.json");
 const PORT = process.env.PORT || 3000;
+
+// Huella de esta versión desplegada: si index.html cambia en un redeploy, esta
+// huella cambia, y las pestañas ya abiertas se recargan solas (ver /api/state
+// y el polling del cliente) en vez de quedarse con código antiguo para siempre.
+let APP_VERSION = "boot";
+try{
+  const html = fs.readFileSync(path.join(__dirname, "index.html"));
+  APP_VERSION = crypto.createHash("sha1").update(html).digest("hex").slice(0,10);
+}catch(e){ /* si falla, se queda "boot" y simplemente no se detectan cambios */ }
 
 const DEFAULT_DB = {
   rev: 1,
@@ -77,7 +87,7 @@ function sendJson(res, status, obj){
 }
 
 function publicState(extra){
-  return Object.assign({ coaches: db.coaches, players: db.players, posts: db.posts, rev: db.rev }, extra || {});
+  return Object.assign({ coaches: db.coaches, players: db.players, posts: db.posts, rev: db.rev, appVersion: APP_VERSION }, extra || {});
 }
 
 function readJsonBody(req, maxBytes, cb){
@@ -202,7 +212,10 @@ const server = http.createServer((req, res)=>{
       return res.end("Not found");
     }
     const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
+    res.writeHead(200, {
+      "Content-Type": MIME[ext] || "application/octet-stream",
+      "Cache-Control": "no-cache, no-store, must-revalidate"
+    });
     res.end(data);
   });
 });

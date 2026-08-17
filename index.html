@@ -365,12 +365,21 @@ function newId(prefix){ idSeq++; return prefix+idSeq; }
 /* ---------------- SYNC CON EL SERVIDOR ---------------- */
 let lastRev = 0;
 let syncFailed = false;
+let knownAppVersion = null;
 
 function applyServerState(data){
   if(data.coaches) coaches = data.coaches;
   if(data.players) players = data.players;
   if(data.posts) posts = data.posts;
   if(typeof data.rev === "number") lastRev = data.rev;
+}
+
+function hasUnsavedDraft(){
+  const form = document.querySelector("[data-form='post']");
+  if(!form) return false;
+  const title = form.querySelector("input[name='title']");
+  const text = form.querySelector("textarea[name='text']");
+  return !!((title && title.value.trim()) || (text && text.value.trim()));
 }
 
 async function apiPost(path, body){
@@ -394,6 +403,7 @@ async function bootstrap(){
     if(res.ok){
       const data = await res.json();
       applyServerState(data);
+      knownAppVersion = data.appVersion || null;
       syncFailed = false;
     }
   }catch(e){
@@ -410,6 +420,19 @@ function startPolling(){
       if(!res.ok) return;
       const data = await res.json();
       syncFailed = false;
+
+      // Si el servidor tiene una versión nueva de la app (tras un redeploy) y esta
+      // pestaña lleva abierta desde antes, recargamos sola en vez de quedarnos
+      // para siempre con el código viejo — así nunca hace falta recordar refrescar.
+      if(knownAppVersion && data.appVersion && data.appVersion !== knownAppVersion){
+        const activeTag = document.activeElement && document.activeElement.tagName;
+        const typing = activeTag === "INPUT" || activeTag === "TEXTAREA";
+        if(!typing && !hasUnsavedDraft()){
+          window.location.reload();
+          return;
+        }
+      }
+
       if(data.rev !== lastRev){
         applyServerState(data);
         const activeTag = document.activeElement && document.activeElement.tagName;
