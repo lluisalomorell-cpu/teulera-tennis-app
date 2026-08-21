@@ -244,6 +244,8 @@
   }
   .del-btn:hover{background:var(--coral-bg);}
   .empty-note{color:var(--ink-faint);font-size:13.5px;text-align:center;padding:34px 10px;}
+  .pc-del-row{margin-top:10px;text-align:right;}
+  .del-btn.sm{padding:5px 12px;font-size:10.5px;}
 
   @media (max-width:720px){
     .player-grid{grid-template-columns:1fr;}
@@ -629,6 +631,7 @@ function viewSelectPlayer(){
               })()}
             </div>
           </button>
+          ${u.director ? `<div class="pc-del-row"><button class="del-btn sm" data-action="delete-player" data-id="${p.id}" data-name="${p.name.replace(/"/g,'&quot;')}">🗑️ Eliminar jugador</button></div>` : ``}
         </div>`).join("")}
       ${list.length===0 ? `<p class="empty-note">No se han encontrado jugadores.</p>` : ``}
     </div>
@@ -1325,6 +1328,22 @@ function bindEvents(){
         await apiPost("/api/posts/delete", { id });
       }catch(err){
         posts = posts.filter(m=>m.id!==id);
+      }
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-action='delete-player']").forEach(el=>{
+    el.addEventListener("click", async ()=>{
+      const id = el.dataset.id;
+      const name = el.dataset.name || "este jugador";
+      const ok = window.confirm(`¿Eliminar a ${name}? Se borrará también todo su historial de actualizaciones. Esta acción no se puede deshacer.`);
+      if(!ok) return;
+      try{
+        await apiPost("/api/players/delete", { id });
+      }catch(err){
+        players = players.filter(p=>p.id!==id);
+        posts = posts.filter(m=>m.playerId!==id);
       }
       render();
     });

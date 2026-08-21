@@ -162,6 +162,21 @@ const server = http.createServer((req, res)=>{
     });
   }
 
+  if(url === "/api/players/delete" && req.method === "POST"){
+    return readJsonBody(req, 1e5, (err, body)=>{
+      if(err) return sendJson(res, 400, { error: err.message });
+      const id = (body.id || "").toString();
+      const before = db.players.length;
+      db.players = db.players.filter(p=>p.id !== id);
+      if(db.players.length !== before){
+        db.posts = db.posts.filter(m=>m.playerId !== id);
+        db.rev++;
+        saveDb(db);
+      }
+      return sendJson(res, 200, publicState());
+    });
+  }
+
   if(url === "/api/posts" && req.method === "POST"){
     return readJsonBody(req, 20e6, (err, body)=>{
       if(err) return sendJson(res, err.message==="payload_too_large"?413:400, { error: err.message });
