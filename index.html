@@ -244,8 +244,19 @@
   }
   .del-btn:hover{background:var(--coral-bg);}
   .empty-note{color:var(--ink-faint);font-size:13.5px;text-align:center;padding:34px 10px;}
-  .pc-del-row{margin-top:10px;text-align:right;}
-  .del-btn.sm{padding:5px 12px;font-size:10.5px;}
+  .pc-settings-tab{
+    position:absolute;top:50%;right:0;transform:translateY(-50%);
+    width:26px;height:40px;background:#f2f4f1;border:1.5px solid var(--border);border-right:none;
+    border-radius:12px 0 0 12px;display:flex;align-items:center;justify-content:center;
+    font-size:14px;color:var(--ink-soft);z-index:3;padding:0;line-height:1;
+  }
+  .pc-settings-tab:hover{background:#e6e9e4;color:var(--ink);}
+  .pc-settings-menu{
+    position:absolute;top:50%;right:30px;transform:translateY(-50%);
+    background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+    padding:7px;z-index:4;white-space:nowrap;
+  }
+  .pc-settings-menu .del-btn{padding:6px 13px;font-size:11px;}
 
   @media (max-width:720px){
     .player-grid{grid-template-columns:1fr;}
@@ -460,6 +471,7 @@ let state = {
   loginError: null,
   seen: new Set(),   // "playerId:area" combos already opened this session
   monthOffset: 0,     // 0 = mes actual, -1 = mes anterior, etc. (para el resumen mensual)
+  openPlayerMenu: null,   // id del jugador cuya pestañita de ajustes está abierta, si hay alguna
 };
 
 function areaHasNew(playerId, area){
@@ -631,7 +643,12 @@ function viewSelectPlayer(){
               })()}
             </div>
           </button>
-          ${u.director ? `<div class="pc-del-row"><button class="del-btn sm" data-action="delete-player" data-id="${p.id}" data-name="${p.name.replace(/"/g,'&quot;')}">🗑️ Eliminar jugador</button></div>` : ``}
+          ${u.director ? `
+          <button class="pc-settings-tab" data-action="toggle-player-menu" data-id="${p.id}" title="Ajustes">⚙️</button>
+          ${state.openPlayerMenu === p.id ? `
+          <div class="pc-settings-menu">
+            <button class="del-btn" data-action="delete-player" data-id="${p.id}" data-name="${p.name.replace(/"/g,'&quot;')}">🗑️ Eliminar jugador</button>
+          </div>` : ``}` : ``}
         </div>`).join("")}
       ${list.length===0 ? `<p class="empty-note">No se han encontrado jugadores.</p>` : ``}
     </div>
@@ -1241,7 +1258,7 @@ function bindEvents(){
 
   const logoutBtn = app.querySelector("[data-action='logout']");
   if(logoutBtn) logoutBtn.addEventListener("click", ()=>{
-    state = { view:"landing", pendingRole:null, pendingArea:null, currentUser:null, activeTab:"resumen", selectedPlayerId:null, showAddPlayer:false, search:"", loginError:null, seen:new Set(), monthOffset:0 };
+    state = { view:"landing", pendingRole:null, pendingArea:null, currentUser:null, activeTab:"resumen", selectedPlayerId:null, showAddPlayer:false, search:"", loginError:null, seen:new Set(), monthOffset:0, openPlayerMenu:null };
     render();
   });
 
@@ -1333,12 +1350,23 @@ function bindEvents(){
     });
   });
 
+  app.querySelectorAll("[data-action='toggle-player-menu']").forEach(el=>{
+    el.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const id = el.dataset.id;
+      state.openPlayerMenu = state.openPlayerMenu === id ? null : id;
+      render();
+    });
+  });
+
   app.querySelectorAll("[data-action='delete-player']").forEach(el=>{
-    el.addEventListener("click", async ()=>{
+    el.addEventListener("click", async (e)=>{
+      e.stopPropagation();
       const id = el.dataset.id;
       const name = el.dataset.name || "este jugador";
       const ok = window.confirm(`¿Eliminar a ${name}? Se borrará también todo su historial de actualizaciones. Esta acción no se puede deshacer.`);
       if(!ok) return;
+      state.openPlayerMenu = null;
       try{
         await apiPost("/api/players/delete", { id });
       }catch(err){
@@ -1349,6 +1377,13 @@ function bindEvents(){
     });
   });
 }
+
+document.addEventListener("click", (e)=>{
+  if(state.openPlayerMenu && !e.target.closest(".pc-settings-tab") && !e.target.closest(".pc-settings-menu")){
+    state.openPlayerMenu = null;
+    render();
+  }
+});
 
 bootstrap();
 </script>
