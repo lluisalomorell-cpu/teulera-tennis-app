@@ -260,11 +260,21 @@
   }
   .pc-settings-menu .del-btn{padding:6px 13px;font-size:11px;}
 
-  .today-board{
-    background:var(--green-pale);border:1.5px solid var(--border);border-radius:18px;
-    padding:18px 20px;margin-bottom:22px;
+  .today-wrap{margin-bottom:16px;}
+  .today-tab{
+    background:#f2f4f1;border:1.5px solid var(--border);border-radius:999px;
+    padding:7px 14px;font-size:12px;font-weight:700;color:var(--ink-soft);
+    display:inline-flex;align-items:center;gap:7px;
   }
-  .today-board h3{margin:0 0 12px;font-size:14.5px;color:var(--green-dark);}
+  .today-tab:hover{background:#e6e9e4;color:var(--ink);}
+  .today-count{
+    background:var(--green);color:#fff;border-radius:999px;min-width:18px;height:18px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;padding:0 5px;
+  }
+  .today-board{
+    background:var(--green-pale);border:1.5px solid var(--border);border-radius:16px;
+    padding:14px 16px;margin-top:8px;max-width:420px;
+  }
   .today-list{display:flex;flex-direction:column;gap:10px;}
   .today-item{
     background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 14px;
@@ -491,6 +501,7 @@ let state = {
   seen: new Set(),   // "playerId:area" combos already opened this session
   monthOffset: 0,     // 0 = mes actual, -1 = mes anterior, etc. (para el resumen mensual)
   openPlayerMenu: null,   // id del jugador cuya pestañita de ajustes está abierta, si hay alguna
+  showTodayBoard: false,  // si la pestañita "Novedades de hoy" está desplegada
 };
 
 function areaHasNew(playerId, area){
@@ -645,22 +656,27 @@ function renderTodayBoard(){
   const todays = todaysPosts();
   if(todays.length===0) return "";
   return `
-  <div class="today-board">
-    <h3>📋 Novedades de hoy</h3>
-    <div class="today-list">
-      ${todays.map(m=>{
-        const player = players.find(p=>p.id===m.playerId);
-        const areaInfo = AREAS[m.area] || { emoji:"📝", label:m.area };
-        return `
-        <div class="today-item">
-          <span class="today-emoji">${areaInfo.emoji}</span>
-          <div class="today-body">
-            <div class="today-line"><b>${player ? escapeHtml(player.name) : "—"}</b> · ${areaInfo.label} · <span class="author-tag">${personName(m.authorId)}</span></div>
-            <div class="today-title">${escapeHtml(m.title)}</div>
-          </div>
-        </div>`;
-      }).join("")}
-    </div>
+  <div class="today-wrap">
+    <button class="today-tab" data-action="toggle-today-board">
+      📋 Novedades de hoy <span class="today-count">${todays.length}</span> ${state.showTodayBoard ? "▲" : "▼"}
+    </button>
+    ${state.showTodayBoard ? `
+    <div class="today-board">
+      <div class="today-list">
+        ${todays.map(m=>{
+          const player = players.find(p=>p.id===m.playerId);
+          const areaInfo = AREAS[m.area] || { emoji:"📝", label:m.area };
+          return `
+          <div class="today-item">
+            <span class="today-emoji">${areaInfo.emoji}</span>
+            <div class="today-body">
+              <div class="today-line"><b>${player ? escapeHtml(player.name) : "—"}</b> · ${areaInfo.label} · <span class="author-tag">${personName(m.authorId)}</span></div>
+              <div class="today-title">${escapeHtml(m.title)}</div>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>` : ``}
   </div>`;
 }
 
@@ -1335,7 +1351,7 @@ function bindEvents(){
 
   const logoutBtn = app.querySelector("[data-action='logout']");
   if(logoutBtn) logoutBtn.addEventListener("click", ()=>{
-    state = { view:"landing", pendingRole:null, pendingArea:null, currentUser:null, activeTab:"resumen", selectedPlayerId:null, showAddPlayer:false, search:"", loginError:null, seen:new Set(), monthOffset:0, openPlayerMenu:null };
+    state = { view:"landing", pendingRole:null, pendingArea:null, currentUser:null, activeTab:"resumen", selectedPlayerId:null, showAddPlayer:false, search:"", loginError:null, seen:new Set(), monthOffset:0, openPlayerMenu:null, showTodayBoard:false };
     render();
   });
 
@@ -1427,6 +1443,13 @@ function bindEvents(){
     });
   });
 
+  const toggleToday = app.querySelector("[data-action='toggle-today-board']");
+  if(toggleToday) toggleToday.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    state.showTodayBoard = !state.showTodayBoard;
+    render();
+  });
+
   app.querySelectorAll("[data-action='toggle-player-menu']").forEach(el=>{
     el.addEventListener("click", (e)=>{
       e.stopPropagation();
@@ -1458,6 +1481,10 @@ function bindEvents(){
 document.addEventListener("click", (e)=>{
   if(state.openPlayerMenu && !e.target.closest(".pc-settings-tab") && !e.target.closest(".pc-settings-menu")){
     state.openPlayerMenu = null;
+    render();
+  }
+  if(state.showTodayBoard && !e.target.closest(".today-wrap")){
+    state.showTodayBoard = false;
     render();
   }
 });
