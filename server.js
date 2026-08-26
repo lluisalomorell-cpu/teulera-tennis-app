@@ -9,7 +9,7 @@ const crypto = require("crypto");
 const DATA_DIR = fs.existsSync("/data") ? "/data" : __dirname;
 const DB_FILE = path.join(DATA_DIR, "db.json");
 const PORT = process.env.PORT || 3000;
-const AREAS_VALID = ["tenis", "fisico", "nutricion", "psicologo"];
+const AREAS_VALID = ["tenis", "fisico", "nutricion", "psicologo", "viajes"];
 
 // Huella de esta versión desplegada: si index.html cambia en un redeploy, esta
 // huella cambia, y las pestañas ya abiertas se recargan solas (ver /api/state

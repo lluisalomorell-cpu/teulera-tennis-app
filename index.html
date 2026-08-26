@@ -260,6 +260,21 @@
   }
   .pc-settings-menu .del-btn{padding:6px 13px;font-size:11px;}
 
+  .today-board{
+    background:var(--green-pale);border:1.5px solid var(--border);border-radius:18px;
+    padding:18px 20px;margin-bottom:22px;
+  }
+  .today-board h3{margin:0 0 12px;font-size:14.5px;color:var(--green-dark);}
+  .today-list{display:flex;flex-direction:column;gap:10px;}
+  .today-item{
+    background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 14px;
+    display:flex;align-items:flex-start;gap:10px;
+  }
+  .today-emoji{font-size:16px;line-height:1.4;}
+  .today-body{flex:1;min-width:0;}
+  .today-line{font-size:11.5px;color:var(--ink-soft);margin-bottom:3px;}
+  .today-title{font-size:13.8px;font-weight:700;color:var(--ink);}
+
   @media (max-width:720px){
     .player-grid{grid-template-columns:1fr;}
     .resumen-grid{grid-template-columns:1fr;}
@@ -322,8 +337,10 @@ const AREAS = {
   fisico:     { label:"Físico",     emoji:"💪", pdf:true,  sharedWrite:true, desc:"Planificación física, tests y cargas de trabajo. Los preparadores físicos pueden adjuntar informes en PDF." },
   nutricion:  { label:"Nutrición",  emoji:"🥗", pdf:true,  sharedWrite:true, desc:"Pautas nutricionales individualizadas. El nutricionista puede adjuntar planes o analíticas en PDF." },
   psicologo:  { label:"Psicólogo",  emoji:"🧠", pdf:false, sharedWrite:true, desc:"Resumen de cómo ha ido cada sesión con el jugador, subido por el psicólogo/a del club." },
+  viajes:     { label:"Viajes",     emoji:"✈️", pdf:false, sharedWrite:false, desc:"Apuntes breves del día a día cuando el jugador está de viaje por torneos: cómo va el desplazamiento, la competición y cómo se encuentra." },
 };
 const AREA_KEYS = Object.keys(AREAS);
+const SIGNUP_AREA_KEYS = AREA_KEYS.filter(k=>k!=="viajes"); // "Viajes" no es un área de alta para entrenadores nuevos
 
 function initials(name){
   return name.split(" ").filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("");
@@ -518,6 +535,7 @@ function canWrite(area, playerId){
   const u = state.currentUser;
   if(!u || u.role!=="entrenador") return false;
   if(u.director) return true;
+  if(area === "viajes") return u.area === "tenis"; // los entrenadores de tenis son quienes viajan con los jugadores
   if(u.area !== area) return false;
   if(AREAS[area].sharedWrite) return true;
   return isResponsable(u.id, playerId, area);
@@ -576,7 +594,7 @@ function viewSetupArea(){
       <div class="auth-card-body">
         <p class="auth-sub">¿Cuál es tu área de trabajo?</p>
         <div class="opt-list">
-          ${AREA_KEYS.map(k=>`
+          ${SIGNUP_AREA_KEYS.map(k=>`
             <button class="opt-item" data-action="pick-area" data-area="${k}">
               <span class="oi-emoji">${AREAS[k].emoji}</span><span>${AREAS[k].label}</span>
             </button>`).join("")}
@@ -613,6 +631,39 @@ function viewSetupProfile(){
   </div>`;
 }
 
+function todaysPosts(){
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = new Date(start.getTime());
+  end.setDate(end.getDate()+1);
+  return posts
+    .filter(m=>{ const d = new Date(m.date); return d >= start && d < end; })
+    .sort((a,b)=>new Date(b.date)-new Date(a.date));
+}
+
+function renderTodayBoard(){
+  const todays = todaysPosts();
+  if(todays.length===0) return "";
+  return `
+  <div class="today-board">
+    <h3>📋 Novedades de hoy</h3>
+    <div class="today-list">
+      ${todays.map(m=>{
+        const player = players.find(p=>p.id===m.playerId);
+        const areaInfo = AREAS[m.area] || { emoji:"📝", label:m.area };
+        return `
+        <div class="today-item">
+          <span class="today-emoji">${areaInfo.emoji}</span>
+          <div class="today-body">
+            <div class="today-line"><b>${player ? escapeHtml(player.name) : "—"}</b> · ${areaInfo.label} · <span class="author-tag">${personName(m.authorId)}</span></div>
+            <div class="today-title">${escapeHtml(m.title)}</div>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+
 function viewSelectPlayer(){
   const u = state.currentUser;
   const list = players.filter(p=>p.name.toLowerCase().includes((state.search||"").toLowerCase()));
@@ -623,6 +674,7 @@ function viewSelectPlayer(){
       <h2>Selecciona un jugador</h2>
       <p>Elige con qué jugador quieres trabajar. Puedes dar de alta uno nuevo si hace falta.</p>
     </div>
+    ${renderTodayBoard()}
     <input class="field input-search" style="width:100%;max-width:320px;padding:11px 14px;border-radius:12px;border:1.5px solid var(--border);font-size:13.5px;margin-bottom:14px" placeholder="Buscar jugador…" data-input="search" value="${state.search||''}">
     <br>
     <button class="add-btn" data-action="toggle-add-player">➕ Añadir jugador</button>
@@ -1099,14 +1151,16 @@ function renderAreaPage(player, area, u){
   </div>
   <p class="area-desc">${disabledForPlayer
     ? `Esta área todavía no se está usando con ${player.name}. Queda reservada por si se activa más adelante — dínoslo cuando quieras empezar a usarla.`
-    : `${AREAS[area].desc}${(AREAS[area].sharedWrite && !allowed) ? ` Todos los entrenadores de ${AREAS[area].label.toLowerCase()} del club pueden escribir aquí.` : ""}${(!AREAS[area].sharedWrite && !allowed && respLbl) ? ` Responsable actual: <b>${respLbl}</b>.` : ""}${(!AREAS[area].sharedWrite && !allowed && !respLbl) ? ` Todavía no hay ningún responsable de ${AREAS[area].label.toLowerCase()} asignado a ${player.name}.` : ""}`}</p>
+    : area==="viajes"
+      ? `${AREAS[area].desc}${!allowed ? ` Pueden escribir aquí los entrenadores de tenis y los directores del club.` : ""}`
+      : `${AREAS[area].desc}${(AREAS[area].sharedWrite && !allowed) ? ` Todos los entrenadores de ${AREAS[area].label.toLowerCase()} del club pueden escribir aquí.` : ""}${(!AREAS[area].sharedWrite && !allowed && respLbl) ? ` Responsable actual: <b>${respLbl}</b>.` : ""}${(!AREAS[area].sharedWrite && !allowed && !respLbl) ? ` Todavía no hay ningún responsable de ${AREAS[area].label.toLowerCase()} asignado a ${player.name}.` : ""}`}</p>
 
   ${allowed ? `
   <div class="add-box">
-    <h4>${area==="psicologo" ? "Añadir resumen de sesión" : "Añadir actualización"}</h4>
+    <h4>${area==="psicologo" ? "Añadir resumen de sesión" : area==="viajes" ? "Añadir apunte de viaje" : "Añadir actualización"}</h4>
     <form data-form="post" data-player="${player.id}" data-area="${area}">
-      <div class="field"><label>Título</label><input type="text" name="title" placeholder="${area==='psicologo' ? 'Ej. Sesión de hoy' : 'Título breve'}" required></div>
-      <div class="field" style="margin-top:12px"><label>Detalle</label><textarea name="text" placeholder="${area==='psicologo' ? '¿Cómo ha ido la sesión con el jugador?' : 'Descripción…'}" required></textarea></div>
+      <div class="field"><label>Título</label><input type="text" name="title" placeholder="${area==='psicologo' ? 'Ej. Sesión de hoy' : area==='viajes' ? 'Ej. Torneo en Valencia - Día 2' : 'Título breve'}" required></div>
+      <div class="field" style="margin-top:12px"><label>Detalle</label><textarea name="text" placeholder="${area==='psicologo' ? '¿Cómo ha ido la sesión con el jugador?' : area==='viajes' ? '3 a 6 frases cortas: viaje, competición, cómo se encuentra…' : 'Descripción…'}" required></textarea></div>
       ${AREAS[area].pdf ? `
       <div class="field file-field"><label>Adjuntar PDF (opcional)</label><input type="file" name="attachment" accept="application/pdf"></div>` : ``}
       <button class="save-btn" type="submit">Guardar</button>
