@@ -184,6 +184,8 @@
     display:flex;align-items:center;gap:7px;
   }
   .tab-btn.active{background:var(--green);border-color:var(--green);color:#fff;}
+  .tab-btn.tab-mini{padding:6px 12px;font-size:11px;font-weight:600;color:var(--ink-faint);background:#f4f5f2;border-style:dashed;opacity:.8;}
+  .tab-btn.tab-mini.active{background:#e4e6e1;border-color:var(--border);color:var(--ink-soft);border-style:dashed;}
   .tab-dot{width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;box-shadow:0 0 0 2px #fff;}
   .tab-btn.active .tab-dot{box-shadow:0 0 0 2px var(--green);}
   .card-dot{width:9px;height:9px;border-radius:50%;background:#ef4444;position:absolute;top:16px;right:16px;box-shadow:0 0 0 2px #fff;}
@@ -494,6 +496,9 @@ function isResponsable(coachId, playerId, area){
   if(Array.isArray(r)) return r.includes(coachId);
   return r === coachId;
 }
+function isAreaDisabled(player, area){
+  return (player.disabledAreas||[]).includes(area);
+}
 function respIds(player, area){
   const r = player.responsables[area];
   if(!r) return [];
@@ -724,7 +729,11 @@ function viewDashboard(){
   </div>
   <div class="tabs">
     <button class="tab-btn ${tab==='resumen'?'active':''}" data-action="set-tab" data-tab="resumen">🏠 Resumen</button>
-    ${AREA_KEYS.map(k=>`<button class="tab-btn ${tab===k?'active':''}" data-action="set-tab" data-tab="${k}">${AREAS[k].emoji} ${AREAS[k].label}${areaHasNew(player.id,k) ? `<span class="tab-dot"></span>` : ``}</button>`).join("")}
+    ${AREA_KEYS.map(k=>{
+      const disabled = isAreaDisabled(player, k);
+      if(disabled) return `<button class="tab-btn tab-mini ${tab===k?'active':''}" data-action="set-tab" data-tab="${k}" title="No activo para este jugador todavía">🔒 ${AREAS[k].label}</button>`;
+      return `<button class="tab-btn ${tab===k?'active':''}" data-action="set-tab" data-tab="${k}">${AREAS[k].emoji} ${AREAS[k].label}${areaHasNew(player.id,k) ? `<span class="tab-dot"></span>` : ``}</button>`;
+    }).join("")}
   </div>
   <div class="page">
     ${tab==="resumen" ? renderResumen(player) : tab==="semanal" ? renderWeekly(player) : tab==="mensual" ? renderMonthly(player) : renderAreaPage(player, tab, u)}
@@ -1048,6 +1057,15 @@ function renderResumen(player){
   </div>
   <div class="resumen-grid">
     ${AREA_KEYS.map(k=>{
+      if(isAreaDisabled(player, k)){
+        return `
+        <div class="resumen-card" style="opacity:.65">
+          <button data-action="set-tab" data-tab="${k}">
+            <div class="rc-label">🔒 ${AREAS[k].label}</div>
+            <div class="rc-empty">No activo para este jugador todavía.</div>
+          </button>
+        </div>`;
+      }
       const m = latestPost(player.id, k);
       return `
       <div class="resumen-card">
@@ -1062,7 +1080,8 @@ function renderResumen(player){
 }
 
 function renderAreaPage(player, area, u){
-  const allowed = canWrite(area, player.id);
+  const disabledForPlayer = isAreaDisabled(player, area);
+  const allowed = disabledForPlayer ? false : canWrite(area, player.id);
   const respLbl = respLabel(player, area);
   let list = posts.filter(m=>m.playerId===player.id && m.area===area);
   const q = (state.search||"").toLowerCase();
@@ -1072,11 +1091,15 @@ function renderAreaPage(player, area, u){
   return `
   <div class="area-head">
     <h2>${AREAS[area].label}</h2>
-    ${allowed
-      ? `<span class="status-pill can">✏️ Puedes escribir aquí</span>`
-      : `<span class="status-pill cant">👁️ Solo puedes ver</span>`}
+    ${disabledForPlayer
+      ? `<span class="status-pill cant">🔒 No activo para este jugador</span>`
+      : allowed
+        ? `<span class="status-pill can">✏️ Puedes escribir aquí</span>`
+        : `<span class="status-pill cant">👁️ Solo puedes ver</span>`}
   </div>
-  <p class="area-desc">${AREAS[area].desc}${(AREAS[area].sharedWrite && !allowed) ? ` Todos los entrenadores de ${AREAS[area].label.toLowerCase()} del club pueden escribir aquí.` : ""}${(!AREAS[area].sharedWrite && !allowed && respLbl) ? ` Responsable actual: <b>${respLbl}</b>.` : ""}${(!AREAS[area].sharedWrite && !allowed && !respLbl) ? ` Todavía no hay ningún responsable de ${AREAS[area].label.toLowerCase()} asignado a ${player.name}.` : ""}</p>
+  <p class="area-desc">${disabledForPlayer
+    ? `Esta área todavía no se está usando con ${player.name}. Queda reservada por si se activa más adelante — dínoslo cuando quieras empezar a usarla.`
+    : `${AREAS[area].desc}${(AREAS[area].sharedWrite && !allowed) ? ` Todos los entrenadores de ${AREAS[area].label.toLowerCase()} del club pueden escribir aquí.` : ""}${(!AREAS[area].sharedWrite && !allowed && respLbl) ? ` Responsable actual: <b>${respLbl}</b>.` : ""}${(!AREAS[area].sharedWrite && !allowed && !respLbl) ? ` Todavía no hay ningún responsable de ${AREAS[area].label.toLowerCase()} asignado a ${player.name}.` : ""}`}</p>
 
   ${allowed ? `
   <div class="add-box">
