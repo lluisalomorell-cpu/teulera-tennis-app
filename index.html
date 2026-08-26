@@ -687,9 +687,9 @@ function viewCredentials(){
     <h4 style="margin:0 0 10px;color:var(--green-dark)">Entrenadores</h4>
     <div class="entry-list" style="margin-bottom:26px">
       ${coaches.map(c=>`
-        <div class="entry-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <div><b>${c.name}</b> <span class="author-tag">· ${AREAS[c.area].label}</span></div>
-          <span class="attach-pill" style="cursor:default">👤 ${c.username} &nbsp;·&nbsp; 🔒 ${c.password}</span>
+        <div class="entry-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap${c.active===false ? ";opacity:.55" : ""}">
+          <div><b>${c.name}</b> <span class="author-tag">· ${AREAS[c.area].label}${c.active===false ? " · Baja (sin acceso)" : ""}</span></div>
+          ${c.active===false ? `<span class="attach-pill" style="cursor:default">🚫 Acceso desactivado</span>` : `<span class="attach-pill" style="cursor:default">👤 ${c.username} &nbsp;·&nbsp; 🔒 ${c.password}</span>`}
         </div>`).join("")}
     </div>
 
@@ -1136,7 +1136,7 @@ function bindEvents(){
       const fd = new FormData(loginForm);
       const uname = (fd.get("username")||"").toString().trim().toLowerCase();
       const pass = (fd.get("password")||"").toString();
-      const c = coaches.find(x=> (x.username||"").toLowerCase()===uname && x.password===pass);
+      const c = coaches.find(x=> (x.username||"").toLowerCase()===uname && x.password===pass && x.active!==false);
       const p = !c ? players.find(x=> (x.username||"").toLowerCase()===uname && x.password===pass) : null;
       if(c){
         state.currentUser = { id:c.id, name:c.name, role:"entrenador", area:c.area, director:!!c.director };

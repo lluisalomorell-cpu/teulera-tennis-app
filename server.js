@@ -9,6 +9,7 @@ const crypto = require("crypto");
 const DATA_DIR = fs.existsSync("/data") ? "/data" : __dirname;
 const DB_FILE = path.join(DATA_DIR, "db.json");
 const PORT = process.env.PORT || 3000;
+const AREAS_VALID = ["tenis", "fisico", "nutricion", "psicologo"];
 
 // Huella de esta versión desplegada: si index.html cambia en un redeploy, esta
 // huella cambia, y las pestañas ya abiertas se recargan solas (ver /api/state
@@ -27,7 +28,7 @@ const DEFAULT_DB = {
     { id:"c2",  name:"Gabi",    role:"entrenador", area:"tenis",     username:"gabi",    password:"f1cbfno6" },
     { id:"c3",  name:"Carlos",  role:"entrenador", area:"tenis",     username:"carlos",  password:"b9m80o2r" },
     { id:"c4",  name:"Alfonso", role:"entrenador", area:"tenis",     username:"alfonso", password:"ak1vrjnv" },
-    { id:"c5",  name:"Xavi",    role:"entrenador", area:"tenis",     username:"xavi",    password:"gfygwwqc" },
+    { id:"c5",  name:"Xavi",    role:"entrenador", area:"tenis",     username:"xavi",    password:"gfygwwqc", active:false },
     { id:"c6",  name:"Simone",  role:"entrenador", area:"tenis",     username:"simone",  password:"38hyf9sx" },
     { id:"c7",  name:"Lluis",   role:"entrenador", area:"fisico",    director:true, username:"Lluis", password:"Lluis1996" },
     { id:"c8",  name:"Pep",     role:"entrenador", area:"fisico",    username:"pep",     password:"mecosfog" },
@@ -37,13 +38,13 @@ const DEFAULT_DB = {
   players: [
     { id:"p1",  name:"Pedro Vives",          categoria:"", username:"pedro.vives",    password:"r9oudocu", responsables:{ tenis:"c1",       fisico:null, nutricion:"c9", psicologo:"c10" } },
     { id:"p2",  name:"Didrik",               categoria:"", username:"didrik",         password:"zrenun5z", responsables:{ tenis:"c1",       fisico:null, nutricion:"c9", psicologo:"c10" } },
-    { id:"p3",  name:"Henri",                categoria:"", username:"henri",          password:"3jqip98q", responsables:{ tenis:["c5","c3"], fisico:null, nutricion:"c9", psicologo:"c10" } },
-    { id:"p4",  name:"Salman",               categoria:"", username:"salman",         password:"1zxoi65f", responsables:{ tenis:["c5","c3"], fisico:null, nutricion:"c9", psicologo:"c10" } },
-    { id:"p5",  name:"Theo",                 categoria:"", username:"theo",           password:"dhjk1eyy", responsables:{ tenis:["c5","c3"], fisico:null, nutricion:"c9", psicologo:"c10" } },
-    { id:"p6",  name:"Sergi",                categoria:"", username:"sergi",          password:"37q9ah8r", responsables:{ tenis:["c5","c3"], fisico:null, nutricion:"c9", psicologo:"c10" } },
-    { id:"p7",  name:"Joan",                 categoria:"", username:"joan",           password:"vhs1k3aq", responsables:{ tenis:["c5","c3"], fisico:null, nutricion:"c9", psicologo:"c10" } },
-    { id:"p8",  name:"Luca",                 categoria:"", username:"luca",           password:"6l6gt6mj", responsables:{ tenis:["c5","c3"], fisico:null, nutricion:"c9", psicologo:"c10" } },
-    { id:"p9",  name:"Sase",                 categoria:"", username:"sase",           password:"xk87au5b", responsables:{ tenis:["c5","c3"], fisico:null, nutricion:"c9", psicologo:"c10" } },
+    { id:"p3",  name:"Henri",                categoria:"", username:"henri",          password:"3jqip98q", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" } },
+    { id:"p4",  name:"Salman",               categoria:"", username:"salman",         password:"1zxoi65f", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" } },
+    { id:"p5",  name:"Theo",                 categoria:"", username:"theo",           password:"dhjk1eyy", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" } },
+    { id:"p6",  name:"Sergi",                categoria:"", username:"sergi",          password:"37q9ah8r", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" } },
+    { id:"p7",  name:"Joan",                 categoria:"", username:"joan",           password:"vhs1k3aq", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" } },
+    { id:"p8",  name:"Luca",                 categoria:"", username:"luca",           password:"6l6gt6mj", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" } },
+    { id:"p9",  name:"Sase",                 categoria:"", username:"sase",           password:"xk87au5b", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" } },
     { id:"p10", name:"Mireia",               categoria:"", username:"mireia",         password:"hxtpdpff", responsables:{ tenis:"c3",       fisico:null, nutricion:"c9", psicologo:"c10" } },
     { id:"p11", name:"Mia P",                categoria:"", username:"mia.p",          password:"5e8ii49k", responsables:{ tenis:["c3","c6"], fisico:null, nutricion:"c9", psicologo:"c10" } },
     { id:"p12", name:"Adriana C",            categoria:"", username:"adriana.c",      password:"q71n8mtz", responsables:{ tenis:["c3","c6"], fisico:null, nutricion:"c9", psicologo:"c10" } },
@@ -159,6 +160,39 @@ const server = http.createServer((req, res)=>{
       db.rev++;
       saveDb(db);
       return sendJson(res, 200, publicState({ created: player }));
+    });
+  }
+
+  if(url === "/api/coaches/set-active" && req.method === "POST"){
+    return readJsonBody(req, 1e5, (err, body)=>{
+      if(err) return sendJson(res, 400, { error: err.message });
+      const id = (body.id || "").toString();
+      const active = body.active !== false; // por defecto, reactivar
+      const coach = db.coaches.find(c=>c.id === id);
+      if(!coach) return sendJson(res, 404, { error:"not_found" });
+      coach.active = active;
+      db.rev++;
+      saveDb(db);
+      return sendJson(res, 200, publicState());
+    });
+  }
+
+  if(url === "/api/players/set-responsable" && req.method === "POST"){
+    return readJsonBody(req, 1e5, (err, body)=>{
+      if(err) return sendJson(res, 400, { error: err.message });
+      const playerId = (body.playerId || "").toString();
+      const area = (body.area || "").toString();
+      if(!AREAS_VALID.includes(area)) return sendJson(res, 400, { error:"bad_area" });
+      const player = db.players.find(p=>p.id === playerId);
+      if(!player) return sendJson(res, 404, { error:"not_found" });
+      let responsables = body.responsables;
+      // Normaliza: null, un id en string, o un array de ids.
+      if(responsables != null && !Array.isArray(responsables)) responsables = [String(responsables)];
+      if(Array.isArray(responsables)) responsables = responsables.map(String).filter(Boolean);
+      player.responsables[area] = (!responsables || responsables.length===0) ? null : (responsables.length===1 ? responsables[0] : responsables);
+      db.rev++;
+      saveDb(db);
+      return sendJson(res, 200, publicState());
     });
   }
 
