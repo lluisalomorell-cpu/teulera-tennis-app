@@ -278,12 +278,21 @@
   .today-list{display:flex;flex-direction:column;gap:10px;}
   .today-item{
     background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 14px;
-    display:flex;align-items:flex-start;gap:10px;
+    display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;font:inherit;cursor:pointer;
   }
+  button.today-item:hover{background:var(--green-pale);border-color:var(--green);}
+  .today-item.today-item-disabled{cursor:default;opacity:.7;}
   .today-emoji{font-size:16px;line-height:1.4;}
   .today-body{flex:1;min-width:0;}
   .today-line{font-size:11.5px;color:var(--ink-soft);margin-bottom:3px;}
   .today-title{font-size:13.8px;font-weight:700;color:var(--ink);}
+  .entry-card.post-highlight{
+    animation: post-highlight-flash 2.2s ease-out;
+  }
+  @keyframes post-highlight-flash{
+    0%{ box-shadow:0 0 0 3px var(--green); }
+    100%{ box-shadow:var(--shadow); }
+  }
 
   @media (max-width:720px){
     .player-grid{grid-template-columns:1fr;}
@@ -503,6 +512,7 @@ let state = {
   openPlayerMenu: null,   // id del jugador cuya pestañita de ajustes está abierta, si hay alguna
   showTodayBoard: false,  // si la pestañita "Novedades de hoy" está desplegada
   seenTodayPostIds: new Set(),   // ids de posts de "Novedades de hoy" ya vistos esta sesión (para que el contador baje al entrar)
+  scrollToPostId: null,   // id del post al que hay que hacer scroll y resaltar tras navegar desde "Novedades de hoy"
 };
 
 function areaHasNew(playerId, area){
@@ -564,6 +574,16 @@ function render(){
   else if(state.view === "credentials" && canSeeCredentials(state.currentUser)) app.innerHTML = viewCredentials();
   else app.innerHTML = viewDashboard();
   bindEvents();
+  if(state.scrollToPostId){
+    const targetId = state.scrollToPostId;
+    state.scrollToPostId = null;
+    const el = document.getElementById("post-"+targetId);
+    if(el){
+      el.scrollIntoView({behavior:"smooth", block:"center"});
+      el.classList.add("post-highlight");
+      setTimeout(()=>el.classList.remove("post-highlight"), 2200);
+    }
+  }
 }
 
 function viewLanding(){
@@ -668,14 +688,15 @@ function renderTodayBoard(){
         ${todays.map(m=>{
           const player = players.find(p=>p.id===m.playerId);
           const areaInfo = AREAS[m.area] || { emoji:"📝", label:m.area };
-          return `
-          <div class="today-item">
+          const inner = `
             <span class="today-emoji">${areaInfo.emoji}</span>
             <div class="today-body">
               <div class="today-line"><b>${player ? escapeHtml(player.name) : "—"}</b> · ${areaInfo.label} · <span class="author-tag">${personName(m.authorId)}</span></div>
               <div class="today-title">${escapeHtml(m.title)}</div>
-            </div>
-          </div>`;
+            </div>`;
+          return player
+            ? `<button class="today-item" data-action="goto-post" data-player="${player.id}" data-area="${m.area}" data-post="${m.id}">${inner}</button>`
+            : `<div class="today-item today-item-disabled">${inner}</div>`;
         }).join("")}
       </div>
     </div>` : ``}
@@ -1191,7 +1212,7 @@ function renderAreaPage(player, area, u){
 
   <div class="entry-list">
     ${list.map(m=>`
-      <div class="entry-card">
+      <div class="entry-card" id="post-${m.id}">
         <div class="entry-date">${formatDate(m.date)} · <span class="author-tag">${personName(m.authorId)}</span></div>
         <div class="entry-title">${escapeHtml(m.title)}</div>
         <div class="entry-text">${escapeHtml(m.text)}</div>
@@ -1353,7 +1374,7 @@ function bindEvents(){
 
   const logoutBtn = app.querySelector("[data-action='logout']");
   if(logoutBtn) logoutBtn.addEventListener("click", ()=>{
-    state = { view:"landing", pendingRole:null, pendingArea:null, currentUser:null, activeTab:"resumen", selectedPlayerId:null, showAddPlayer:false, search:"", loginError:null, seen:new Set(), monthOffset:0, openPlayerMenu:null, showTodayBoard:false, seenTodayPostIds:new Set() };
+    state = { view:"landing", pendingRole:null, pendingArea:null, currentUser:null, activeTab:"resumen", selectedPlayerId:null, showAddPlayer:false, search:"", loginError:null, seen:new Set(), monthOffset:0, openPlayerMenu:null, showTodayBoard:false, seenTodayPostIds:new Set(), scrollToPostId:null };
     render();
   });
 
@@ -1441,6 +1462,20 @@ function bindEvents(){
       }catch(err){
         posts = posts.filter(m=>m.id!==id);
       }
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-action='goto-post']").forEach(el=>{
+    el.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      todaysPosts().forEach(m=>state.seenTodayPostIds.add(m.id));
+      state.showTodayBoard = false;
+      state.selectedPlayerId = el.dataset.player;
+      state.activeTab = el.dataset.area;
+      state.search = "";
+      state.view = "dashboard";
+      state.scrollToPostId = el.dataset.post;
       render();
     });
   });
