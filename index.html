@@ -361,6 +361,14 @@ const AREAS = {
 const AREA_KEYS = Object.keys(AREAS);
 const SIGNUP_AREA_KEYS = AREA_KEYS.filter(k=>k!=="viajes"); // "Viajes" no es un área de alta para entrenadores nuevos
 
+// "Directrices" no es un área más (no es una lista de apuntes con fecha, ni entra en
+// resúmenes/PDF): es un único texto editable in-situ por jugador con la línea de
+// trabajo básica, así que vive fuera de AREAS/AREA_KEYS y se renderiza aparte.
+const DIRECTRICES = {
+  label:"Directrices", emoji:"🧭",
+  desc:"Principios básicos de cómo trabajar con este jugador — línea técnica, comunicación, aspectos a tener en cuenta — para que cualquier entrenador de tenis que tenga que sustituir sepa cómo continuar."
+};
+
 function initials(name){
   return name.split(" ").filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("");
 }
@@ -561,6 +569,17 @@ function canWrite(area, playerId){
   if(u.area !== area) return false;
   if(AREAS[area].sharedWrite) return true;
   return isResponsable(u.id, playerId, area);
+}
+function canEditDirectrices(player){
+  const u = state.currentUser;
+  if(!u || u.role!=="entrenador") return false;
+  if(u.director) return true;
+  if(u.area !== "tenis") return false;
+  return isResponsable(u.id, player.id, "tenis");
+}
+function truncate(s, n){
+  s = s || "";
+  return s.length > n ? s.slice(0, n-1)+"…" : s;
 }
 
 /* ---------------- RENDER ---------------- */
@@ -820,6 +839,7 @@ function viewDashboard(){
   </div>
   <div class="tabs">
     <button class="tab-btn ${tab==='resumen'?'active':''}" data-action="set-tab" data-tab="resumen">🏠 Resumen</button>
+    ${u && u.role==="entrenador" ? `<button class="tab-btn ${tab==='directrices'?'active':''}" data-action="set-tab" data-tab="directrices">${DIRECTRICES.emoji} ${DIRECTRICES.label}</button>` : ``}
     ${AREA_KEYS.map(k=>{
       const disabled = isAreaDisabled(player, k);
       if(disabled) return `<button class="tab-btn tab-mini ${tab===k?'active':''}" data-action="set-tab" data-tab="${k}" title="No activo para este jugador todavía">🔒 ${AREAS[k].label}</button>`;
@@ -827,7 +847,7 @@ function viewDashboard(){
     }).join("")}
   </div>
   <div class="page">
-    ${tab==="resumen" ? renderResumen(player) : tab==="semanal" ? renderWeekly(player) : tab==="mensual" ? renderMonthly(player) : renderAreaPage(player, tab, u)}
+    ${tab==="resumen" ? renderResumen(player) : tab==="semanal" ? renderWeekly(player) : tab==="mensual" ? renderMonthly(player) : tab==="directrices" ? (u && u.role==="entrenador" ? renderDirectricesPage(player) : renderResumen(player)) : renderAreaPage(player, tab, u)}
   </div>`;
 }
 
@@ -1141,12 +1161,20 @@ function latestPost(playerId, area){
 }
 
 function renderResumen(player){
+  const u = state.currentUser;
   return `
   <div class="page-head" style="margin-top:6px">
     <h2>Resumen general</h2>
     <p>Vista de conjunto — visible para todo el equipo técnico y ${player.name.split(" ")[0]}.</p>
   </div>
   <div class="resumen-grid">
+    ${u && u.role==="entrenador" ? `
+    <div class="resumen-card">
+      <button data-action="set-tab" data-tab="directrices">
+        <div class="rc-label">${DIRECTRICES.emoji} ${DIRECTRICES.label}</div>
+        ${player.directrices ? `<div class="rc-title">${escapeHtml(truncate(player.directrices, 90))}</div>` : `<div class="rc-empty">Todavía no hay directrices para este jugador.</div>`}
+      </button>
+    </div>` : ``}
     ${AREA_KEYS.map(k=>{
       if(isAreaDisabled(player, k)){
         return `
@@ -1168,6 +1196,31 @@ function renderResumen(player){
       </div>`;
     }).join("")}
   </div>`;
+}
+
+function renderDirectricesPage(player){
+  const allowed = canEditDirectrices(player);
+  const text = player.directrices || "";
+  return `
+  <div class="area-head">
+    <h2>${DIRECTRICES.emoji} ${DIRECTRICES.label}</h2>
+    ${allowed
+      ? `<span class="status-pill can">✏️ Puedes escribir aquí</span>`
+      : `<span class="status-pill cant">👁️ Solo puedes ver</span>`}
+  </div>
+  <p class="area-desc">${DIRECTRICES.desc}${(!allowed && !player.directricesAuthorId) ? ` Todavía no hay directrices escritas por el/los responsable/s de tenis de ${player.name}.` : ""}</p>
+  ${player.directricesUpdatedAt ? `<p style="font-size:11.5px;color:var(--ink-faint);margin:-10px 0 20px;">Última actualización: ${formatDate(player.directricesUpdatedAt)} · <span class="author-tag">${personName(player.directricesAuthorId)}</span></p>` : ``}
+  ${allowed ? `
+  <div class="add-box">
+    <h4>Línea de trabajo para ${player.name}</h4>
+    <form data-form="directrices" data-player="${player.id}">
+      <div class="field"><textarea name="directrices" placeholder="Principios básicos: cómo trabajar con este jugador, aspectos técnicos y de comunicación a tener en cuenta…" style="min-height:170px">${escapeHtml(text)}</textarea></div>
+      <button class="save-btn" type="submit">Guardar</button>
+    </form>
+  </div>` : `
+  <div class="entry-card">
+    ${text ? `<div class="entry-text">${escapeHtml(text)}</div>` : `<div class="empty-note">Todavía no hay directrices para ${player.name}.</div>`}
+  </div>`}`;
 }
 
 function renderAreaPage(player, area, u){
@@ -1449,6 +1502,24 @@ function bindEvents(){
         await apiPost("/api/posts", { playerId, area, authorId, title, text, attachment });
       }catch(err){
         posts.push({ id:newId("m"), playerId, area, authorId, date:new Date().toISOString(), title, text, attachment });
+      }
+      render();
+    });
+  }
+
+  const directricesForm = app.querySelector("[data-form='directrices']");
+  if(directricesForm){
+    directricesForm.addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(directricesForm);
+      const directrices = (fd.get("directrices")||"").toString().trim();
+      const playerId = directricesForm.dataset.player;
+      const authorId = state.currentUser.id;
+      try{
+        await apiPost("/api/players/set-directrices", { playerId, directrices, authorId });
+      }catch(err){
+        const p = players.find(x=>x.id===playerId);
+        if(p){ p.directrices = directrices; p.directricesAuthorId = authorId; p.directricesUpdatedAt = new Date().toISOString(); }
       }
       render();
     });

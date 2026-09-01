@@ -36,24 +36,24 @@ const DEFAULT_DB = {
     { id:"c10", name:"Lucia",   role:"entrenador", area:"psicologo", username:"lucia",   password:"rek8pk3y" },
   ],
   players: [
-    { id:"p1",  name:"Pedro Vives",          categoria:"", username:"pedro.vives",    password:"r9oudocu", responsables:{ tenis:"c1",       fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:[] },
-    { id:"p2",  name:"Didrik",               categoria:"", username:"didrik",         password:"zrenun5z", responsables:{ tenis:"c1",       fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:[] },
-    { id:"p3",  name:"Henri",                categoria:"", username:"henri",          password:"3jqip98q", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p4",  name:"Salman",               categoria:"", username:"salman",         password:"1zxoi65f", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p5",  name:"Theo",                 categoria:"", username:"theo",           password:"dhjk1eyy", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p6",  name:"Sergi",                categoria:"", username:"sergi",          password:"37q9ah8r", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p7",  name:"Joan",                 categoria:"", username:"joan",           password:"vhs1k3aq", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p8",  name:"Luca",                 categoria:"", username:"luca",           password:"6l6gt6mj", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p9",  name:"Sase",                 categoria:"", username:"sase",           password:"xk87au5b", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p10", name:"Mireia",               categoria:"", username:"mireia",         password:"hxtpdpff", responsables:{ tenis:"c3",       fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p11", name:"Mia P",                categoria:"", username:"mia.p",          password:"5e8ii49k", responsables:{ tenis:["c3","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p12", name:"Adriana C",            categoria:"", username:"adriana.c",      password:"q71n8mtz", responsables:{ tenis:["c3","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p13", name:"Jimena",               categoria:"", username:"jimena",         password:"x272hpoe", responsables:{ tenis:["c3","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p14", name:"Telmo",                categoria:"", username:"telmo",          password:"vb9ooaed", responsables:{ tenis:"c4",       fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p15", name:"Pedro S",              categoria:"", username:"pedro.s",        password:"oecve6pr", responsables:{ tenis:"c4",       fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p16", name:"Grupo tarde Rojo",     categoria:"Grupo", username:"grupo.rojo",     password:"5n8i4p40", responsables:{ tenis:["c2","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p17", name:"Grupo tarde Amarillo", categoria:"Grupo", username:"grupo.amarillo", password:"mgg1w103", responsables:{ tenis:["c2","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
-    { id:"p18", name:"Grupo Next Gen",       categoria:"Grupo", username:"grupo.nextgen",  password:"dgdzvgpm", responsables:{ tenis:["c2","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"] },
+    { id:"p1",  name:"Pedro Vives",          categoria:"", username:"pedro.vives",    password:"r9oudocu", responsables:{ tenis:"c1",       fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:[], directrices:"" },
+    { id:"p2",  name:"Didrik",               categoria:"", username:"didrik",         password:"zrenun5z", responsables:{ tenis:"c1",       fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:[], directrices:"" },
+    { id:"p3",  name:"Henri",                categoria:"", username:"henri",          password:"3jqip98q", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p4",  name:"Salman",               categoria:"", username:"salman",         password:"1zxoi65f", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p5",  name:"Theo",                 categoria:"", username:"theo",           password:"dhjk1eyy", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p6",  name:"Sergi",                categoria:"", username:"sergi",          password:"37q9ah8r", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p7",  name:"Joan",                 categoria:"", username:"joan",           password:"vhs1k3aq", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p8",  name:"Luca",                 categoria:"", username:"luca",           password:"6l6gt6mj", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p9",  name:"Sase",                 categoria:"", username:"sase",           password:"xk87au5b", responsables:{ tenis:["c3","c1","c4"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p10", name:"Mireia",               categoria:"", username:"mireia",         password:"hxtpdpff", responsables:{ tenis:"c3",       fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p11", name:"Mia P",                categoria:"", username:"mia.p",          password:"5e8ii49k", responsables:{ tenis:["c3","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p12", name:"Adriana C",            categoria:"", username:"adriana.c",      password:"q71n8mtz", responsables:{ tenis:["c3","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p13", name:"Jimena",               categoria:"", username:"jimena",         password:"x272hpoe", responsables:{ tenis:["c3","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p14", name:"Telmo",                categoria:"", username:"telmo",          password:"vb9ooaed", responsables:{ tenis:"c4",       fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p15", name:"Pedro S",              categoria:"", username:"pedro.s",        password:"oecve6pr", responsables:{ tenis:"c4",       fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p16", name:"Grupo tarde Rojo",     categoria:"Grupo", username:"grupo.rojo",     password:"5n8i4p40", responsables:{ tenis:["c2","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p17", name:"Grupo tarde Amarillo", categoria:"Grupo", username:"grupo.amarillo", password:"mgg1w103", responsables:{ tenis:["c2","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
+    { id:"p18", name:"Grupo Next Gen",       categoria:"Grupo", username:"grupo.nextgen",  password:"dgdzvgpm", responsables:{ tenis:["c2","c6"], fisico:null, nutricion:"c9", psicologo:"c10" }, disabledAreas:["psicologo"], directrices:"" },
   ],
   posts: []
 };
@@ -155,7 +155,7 @@ const server = http.createServer((req, res)=>{
       const name = (body.name || "").toString().trim().slice(0,80);
       const categoria = (body.categoria || "").toString().slice(0,40);
       if(!name) return sendJson(res, 400, { error:"name_required" });
-      const player = { id:newId("p"), name, categoria, responsables:{ tenis:null, fisico:null, nutricion:"c9", psicologo:"c10" } };
+      const player = { id:newId("p"), name, categoria, responsables:{ tenis:null, fisico:null, nutricion:"c9", psicologo:"c10" }, directrices:"" };
       db.players.push(player);
       db.rev++;
       saveDb(db);
@@ -206,6 +206,21 @@ const server = http.createServer((req, res)=>{
       if(responsables != null && !Array.isArray(responsables)) responsables = [String(responsables)];
       if(Array.isArray(responsables)) responsables = responsables.map(String).filter(Boolean);
       player.responsables[area] = (!responsables || responsables.length===0) ? null : (responsables.length===1 ? responsables[0] : responsables);
+      db.rev++;
+      saveDb(db);
+      return sendJson(res, 200, publicState());
+    });
+  }
+
+  if(url === "/api/players/set-directrices" && req.method === "POST"){
+    return readJsonBody(req, 2e5, (err, body)=>{
+      if(err) return sendJson(res, err.message==="payload_too_large"?413:400, { error: err.message });
+      const playerId = (body.playerId || "").toString();
+      const player = db.players.find(p=>p.id === playerId);
+      if(!player) return sendJson(res, 404, { error:"not_found" });
+      player.directrices = (body.directrices || "").toString().slice(0, 4000);
+      player.directricesAuthorId = (body.authorId || "").toString() || null;
+      player.directricesUpdatedAt = new Date().toISOString();
       db.rev++;
       saveDb(db);
       return sendJson(res, 200, publicState());
